@@ -1,0 +1,12 @@
+{
+  "listen": "0.0.0.0",
+  "port": 3010,
+  "password": "replace-with-a-long-password",
+  "service": "pzserver.service",
+  "useSudo": true,
+  "iniPath": "/home/zomboid/Zomboid/Server/servertest.ini",
+  "logPath": "",
+  "rconHost": "127.0.0.1",
+  "rconPort": 27015,
+  "rconPassword": "the-rcon-password-from-servertest.ini"
+}

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>岗亭</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <main id="login" class="gate">
+    <p class="mark"><span class="lamp" aria-hidden="true"></span>岗亭</p>
+    <h1>管理员入口</h1>
+    <form id="login-form">
+      <label for="password">面板密码</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button type="submit">进入后台</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </main>
+
+  <main id="app" class="desk" hidden>
+    <header class="top">
+      <p class="mark"><span class="lamp" id="lamp" aria-hidden="true"></span>岗亭</p>
+      <div class="identity" id="board" data-state="off">
+        <h1 id="server-name">家用服务器</h1>
+        <p class="statusline">
+          <span id="state">服务器关着</span>
+          <span aria-hidden="true">·</span>
+          <span id="uptime">没有在运行</span>
+          <span aria-hidden="true">·</span>
+          <span id="rcon">管理口没开</span>
+        </p>
+      </div>
+      <button id="logout" type="button" class="quiet">退出</button>
+    </header>
+
+    <div class="shell">
+      <nav class="nav" aria-label="后台分区">
+        <button type="button" data-view="overview" class="is-on">总览</button>
+        <button type="button" data-view="players">玩家</button>
+        <button type="button" data-view="map">地图</button>
+        <button type="button" data-view="world">世界</button>
+        <button type="button" data-view="files">文件</button>
+        <button type="button" data-view="commands">命令</button>
+        <button type="button" data-view="records">记录</button>
+      </nav>
+
+      <div class="workspace">
+        <div class="pinned">
+          <p id="sample" class="sample" hidden>这是样本数据，不是家里正在跑的服务器。</p>
+          <p id="banner" class="banner" hidden></p>
+          <div id="confirm" class="confirm" hidden>
+            <p id="confirm-text"></p>
+            <div class="confirm-actions">
+              <button id="confirm-yes" type="button">确认执行</button>
+              <button id="confirm-no" type="button" class="quiet">取消</button>
+            </div>
+          </div>
+        </div>
+        <div class="pane" id="pane">
+
+        <section id="view-overview" class="view">
+          <div class="meters">
+            <div><span>地点</span><strong id="place">—</strong></div>
+            <div><span>端口</span><strong id="port">—</strong></div>
+            <div><span>在线</span><strong id="max">—</strong></div>
+            <div><span>公开列表</span><strong id="listed">—</strong></div>
+          </div>
+          <div class="meters">
+            <div><span>处理器</span><strong id="cpu">—</strong></div>
+            <div><span>内存</span><strong id="mem">—</strong></div>
+            <div><span>磁盘</span><strong id="disk">—</strong></div>
+            <div><span>游戏进程</span><strong id="game-mem">—</strong></div>
+          </div>
+          <div class="split">
+            <section>
+              <h2>服规</h2>
+              <ul id="rules" class="pairs"></ul>
+            </section>
+            <section>
+              <h2>启用的模组</h2>
+              <ul id="mods" class="pairs"></ul>
+            </section>
+          </div>
+          <section class="power">
+            <h2>进程</h2>
+            <p class="hint" id="hint">拨动会先存档，再通过系统服务开关这一台服务器。</p>
+            <div class="row">
+              <button id="start" type="button">启动</button>
+              <button id="restart" type="button">重启</button>
+              <button id="stop" type="button" class="danger">关闭</button>
+              <button id="save" type="button" class="quiet">立即存档</button>
+            </div>
+          </section>
+          <form id="message-form" class="composer">
+            <label for="message">发给所有人</label>
+            <div class="row">
+              <input id="message" maxlength="200" placeholder="例如：十分钟后重启">
+              <button type="submit">发送</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="view-players" class="view" hidden>
+          <div class="split players-layout">
+            <section>
+              <div class="section-head">
+                <h2>在线</h2>
+                <span id="count" class="count">0</span>
+              </div>
+              <ul id="players" class="players"></ul>
+            </section>
+            <section id="player-desk">
+              <h2>对这个人</h2>
+              <p id="picked" class="hint">先从左边选一名在线玩家。</p>
+              <div class="row wrap" id="player-actions" hidden>
+                <button type="button" data-act="kick">踢出</button>
+                <button type="button" data-act="ban" class="danger">封禁</button>
+                <button type="button" data-act="voice-off">禁语音</button>
+                <button type="button" data-act="voice-on" class="quiet">恢复语音</button>
+                <button type="button" data-act="god-on">无敌</button>
+                <button type="button" data-act="god-off" class="quiet">取消无敌</button>
+                <button type="button" data-act="ghost-on">对僵尸隐身</button>
+                <button type="button" data-act="ghost-off" class="quiet">取消隐身</button>
+                <button type="button" data-act="clip-on">穿墙</button>
+                <button type="button" data-act="clip-off" class="quiet">取消穿墙</button>
+              </div>
+              <form id="access-form" hidden>
+                <label for="access-level">权限</label>
+                <div class="row">
+                  <select id="access-level">
+                    <option value="user">普通玩家</option>
+                    <option value="priority">优先</option>
+                    <option value="observer">观察</option>
+                    <option value="gm">游戏主持</option>
+                    <option value="moderator">协管</option>
+                    <option value="admin">管理员</option>
+                  </select>
+                  <button type="submit">设置权限</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section id="view-map" class="view" hidden>
+          <p id="map-note" class="hint">点右侧一名玩家，地图跳到他上次存档的位置。</p>
+          <div class="map-work">
+            <canvas id="county" width="960" height="640"></canvas>
+            <form id="map-act" class="card">
+              <h2>玩家位置</h2>
+              <div id="map-switch" class="map-switch"></div>
+              <h2>对这个坐标</h2>
+              <p id="picked-spot">先在地图上点一块地。</p>
+              <label for="map-player">被传送的人</label>
+              <input id="map-player" list="online-names" placeholder="从在线名单里选">
+              <label for="map-target">目标玩家</label>
+              <input id="map-target" list="online-names" placeholder="另一名在线玩家">
+              <label for="map-vehicle-id">车辆编号</label>
+              <input id="map-vehicle-id" value="Base.Van">
+              <label for="map-horde-count">尸潮数量</label>
+              <input id="map-horde-count" type="number" min="1" max="80" value="20">
+              <div class="row wrap">
+                <button type="button" id="map-teleport">传到这名玩家身边</button>
+                <button type="button" id="map-vehicle">在这里生成车辆</button>
+                <button type="button" id="map-horde" class="danger">在这人身边生成尸潮</button>
+              </div>
+              <p class="hint">官方命令只能把一名在线玩家传到另一名在线玩家身边，不能传到点中的格子。点中的格子可以生成车辆。尸潮出现在玩家身边。</p>
+              <p id="map-reply" class="hint"></p>
+              <label class="check" for="show-vehicles"><input id="show-vehicles" type="checkbox" checked> 显示车辆</label>
+              <p id="map-vehicle-count" class="hint"></p>
+              <button type="button" id="map-all" class="quiet">整张地图</button>
+              <button type="button" id="map-fit" class="quiet">上次的位置</button>
+            </form>
+          </div>
+          <ul id="map-people" class="pairs"></ul>
+          <div id="map-menu" class="map-menu" hidden></div>
+        </section>
+
+        <section id="view-world" class="view" hidden>
+          <section class="card">
+            <h2>天气</h2>
+            <p class="hint">这些马上作用在正在跑的这一局。</p>
+            <div class="row wrap">
+              <button type="button" id="weather-rain">开始下雨</button>
+              <button type="button" id="weather-stop-rain" class="quiet">停止下雨</button>
+              <button type="button" id="weather-storm">开始暴风雨</button>
+              <button type="button" id="weather-stop" class="quiet">停止天气</button>
+            </div>
+            <label for="rain-intensity">雨的强度</label>
+            <input id="rain-intensity" type="number" min="1" max="100" placeholder="留空用游戏默认">
+            <label for="storm-hours">暴风雨持续小时</label>
+            <input id="storm-hours" type="number" min="1" max="24" placeholder="留空用游戏默认">
+            <h2>事件</h2>
+            <p class="hint">直升机和枪声落在随机一名在线玩家附近。闪电和雷声用上面地图里选中的玩家名。</p>
+            <div class="row wrap">
+              <button type="button" id="event-chopper">直升机</button>
+              <button type="button" id="event-gunshot">枪声</button>
+              <button type="button" id="event-lightning">闪电</button>
+              <button type="button" id="event-thunder">雷声</button>
+              <button type="button" id="event-zombies" class="danger">清除僵尸</button>
+            </div>
+            <label for="event-player">闪电和雷声的玩家</label>
+            <input id="event-player" list="online-names" placeholder="在线玩家">
+          </section>
+          <section class="card">
+            <h2>时间</h2>
+            <p class="hint">setTimeSpeed 改的是时间过得有多快。数字越大越快，例子是 10。不能把时钟拨到某个钟点。</p>
+            <label for="time-speed">流速</label>
+            <div class="row">
+              <input id="time-speed" type="number" min="0" max="200" value="1">
+              <button type="button" id="time-apply">设置时间流速</button>
+            </div>
+          </section>
+          <section>
+            <div class="section-head">
+              <h2>沙盒</h2>
+            </div>
+            <p id="sandbox-note" class="hint">选项显示成中文。写入沙盒文件后，要重启游戏服才会进到这一局。这次不会重启。</p>
+            <input id="sandbox-search" placeholder="搜索沙盒项">
+            <form id="sandbox-form" class="sandbox"></form>
+            <div class="sandbox-bar">
+              <button type="button" id="sandbox-save">写入沙盒</button>
+            </div>
+          </section>
+        </section>
+
+        <section id="view-files" class="view" hidden>
+          <p id="files-note" class="hint"></p>
+          <div class="split">
+            <section>
+              <h2>模组</h2>
+              <p class="hint">只显示已经写在配置里的模组。改名单要动 ini 并重启游戏服，这次不写。</p>
+              <ul id="file-mods" class="pairs"></ul>
+            </section>
+            <section>
+              <h2>服务器文件</h2>
+              <ul id="file-list" class="pairs"></ul>
+            </section>
+          </div>
+          <section class="card">
+            <h2>世界备份</h2>
+            <p class="hint">先让游戏服存档，再把存档目录复制到 Zomboid/backups。不会停服，也不会恢复。整张地图清空会删掉这一局，所以没有放进来。</p>
+            <button type="button" id="backup-now">现在备份</button>
+            <ul id="backup-list" class="pairs"></ul>
+          </section>
+          <section class="card">
+            <h2>在线玩家和聊天</h2>
+            <p class="hint">在线的人在「玩家」。游戏里的聊天在「记录」。击杀、天数、武器排行榜不是官方存档里的数字，没有模组就做不出准确榜，所以这里不编一个。</p>
+          </section>
+        </section>
+
+        <section id="view-commands" class="view" hidden>
+          <p class="hint">这里是官方控制台命令，不带斜杠。天气、时间和沙盒在「世界」。报警和释放安全屋必须人站在游戏里，所以没有放进来。</p>
+          <input id="command-search" placeholder="搜索命令或说明">
+          <div id="command-groups" class="row wrap"></div>
+          <div id="command-board"></div>
+        </section>
+
+        <section id="view-records" class="view" hidden>
+          <div class="split">
+            <section>
+              <h2>最近进出</h2>
+              <ul id="visits" class="feed"></ul>
+            </section>
+            <section>
+              <h2>聊天</h2>
+              <ul id="chat" class="feed"></ul>
+            </section>
+          </div>
+          <section>
+            <h2>控制台</h2>
+            <pre id="logs" class="logs">正在读取</pre>
+          </section>
+        </section>
+
+      </div>
+    </div>
+  </main>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <datalist id="online-names"></datalist>
+  <script src="/sandbox-zh.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
