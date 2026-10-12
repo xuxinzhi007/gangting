@@ -36,26 +36,40 @@
 
     <div class="shell">
       <nav class="nav" aria-label="后台分区">
-        <button type="button" data-view="overview" class="is-on">总览</button>
-        <button type="button" data-view="players">玩家</button>
-        <button type="button" data-view="map">地图</button>
-        <button type="button" data-view="world">世界</button>
-        <button type="button" data-view="files">文件</button>
-        <button type="button" data-view="commands">命令</button>
-        <button type="button" data-view="records">记录</button>
+        <button type="button" data-view="overview" class="is-on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+          <span>总览</span>
+        </button>
+        <button type="button" data-view="players">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>玩家</span>
+        </button>
+        <button type="button" data-view="map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg>
+          <span>地图</span>
+        </button>
+        <button type="button" data-view="world">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>世界</span>
+        </button>
+        <button type="button" data-view="files">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>文件</span>
+        </button>
+        <button type="button" data-view="commands">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
+          <span>命令</span>
+        </button>
+        <button type="button" data-view="records">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3.5 6h.01"/><path d="M3.5 12h.01"/><path d="M3.5 18h.01"/></svg>
+          <span>记录</span>
+        </button>
       </nav>
 
       <div class="workspace">
         <div class="pinned">
           <p id="sample" class="sample" hidden>这是样本数据，不是家里正在跑的服务器。</p>
           <p id="banner" class="banner" hidden></p>
-          <div id="confirm" class="confirm" hidden>
-            <p id="confirm-text"></p>
-            <div class="confirm-actions">
-              <button id="confirm-yes" type="button">确认执行</button>
-              <button id="confirm-no" type="button" class="quiet">取消</button>
-            </div>
-          </div>
         </div>
         <div class="pane" id="pane">
 
@@ -67,9 +81,9 @@
             <div><span>公开列表</span><strong id="listed">—</strong></div>
           </div>
           <div class="meters">
-            <div><span>处理器</span><strong id="cpu">—</strong></div>
-            <div><span>内存</span><strong id="mem">—</strong></div>
-            <div><span>磁盘</span><strong id="disk">—</strong></div>
+            <div><span>处理器</span><strong id="cpu">—</strong><div class="bar"><i id="cpu-bar"></i></div></div>
+            <div><span>内存</span><strong id="mem">—</strong><div class="bar"><i id="mem-bar"></i></div></div>
+            <div><span>磁盘</span><strong id="disk">—</strong><div class="bar"><i id="disk-bar"></i></div></div>
             <div><span>游戏进程</span><strong id="game-mem">—</strong></div>
           </div>
           <div class="split">
@@ -87,7 +101,7 @@
             <p class="hint" id="hint">拨动会先存档，再通过系统服务开关这一台服务器。</p>
             <div class="row">
               <button id="start" type="button">启动</button>
-              <button id="restart" type="button">重启</button>
+              <button id="restart" type="button" class="quiet">重启</button>
               <button id="stop" type="button" class="danger">关闭</button>
               <button id="save" type="button" class="quiet">立即存档</button>
             </div>
@@ -114,10 +128,13 @@
               <h2>对这个人</h2>
               <p id="picked" class="hint">先从左边选一名在线玩家。</p>
               <div class="row wrap" id="player-actions" hidden>
-                <button type="button" data-act="kick">踢出</button>
+                <span class="act-group">处罚</span>
+                <button type="button" data-act="kick" class="danger">踢出</button>
                 <button type="button" data-act="ban" class="danger">封禁</button>
+                <span class="act-group">语音</span>
                 <button type="button" data-act="voice-off">禁语音</button>
                 <button type="button" data-act="voice-on" class="quiet">恢复语音</button>
+                <span class="act-group">状态</span>
                 <button type="button" data-act="god-on">无敌</button>
                 <button type="button" data-act="god-off" class="quiet">取消无敌</button>
                 <button type="button" data-act="ghost-on">对僵尸隐身</button>
@@ -152,10 +169,12 @@
               <div id="map-switch" class="map-switch"></div>
               <h2>对这个坐标</h2>
               <p id="picked-spot">先在地图上点一块地。</p>
+              <p class="fieldset">传送</p>
               <label for="map-player">被传送的人</label>
               <input id="map-player" list="online-names" placeholder="从在线名单里选">
               <label for="map-target">目标玩家</label>
               <input id="map-target" list="online-names" placeholder="另一名在线玩家">
+              <p class="fieldset">生成</p>
               <label for="map-vehicle-id">车辆编号</label>
               <input id="map-vehicle-id" value="Base.Van">
               <label for="map-horde-count">尸潮数量</label>
@@ -191,6 +210,8 @@
             <input id="rain-intensity" type="number" min="1" max="100" placeholder="留空用游戏默认">
             <label for="storm-hours">暴风雨持续小时</label>
             <input id="storm-hours" type="number" min="1" max="24" placeholder="留空用游戏默认">
+          </section>
+          <section class="card">
             <h2>事件</h2>
             <p class="hint">直升机和枪声落在随机一名在线玩家附近。闪电和雷声用上面地图里选中的玩家名。</p>
             <div class="row wrap">
@@ -277,6 +298,15 @@
       </div>
     </div>
   </main>
+  <div id="confirm" class="confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-text" hidden>
+    <div class="confirm-card">
+      <p id="confirm-text"></p>
+      <div class="confirm-actions">
+        <button id="confirm-yes" type="button">确认执行</button>
+        <button id="confirm-no" type="button" class="quiet">取消</button>
+      </div>
+    </div>
+  </div>
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <datalist id="online-names"></datalist>
   <script src="/sandbox-zh.js"></script>

@@ -69,11 +69,32 @@ function ask(text, action) {
   pending = action;
   confirmText.textContent = text;
   confirmBox.hidden = false;
+  document.querySelector("#confirm-yes").focus();
 }
 
 function closeAsk() {
   pending = null;
   confirmBox.hidden = true;
+}
+
+confirmBox.addEventListener("click", (event) => {
+  if (event.target === confirmBox) closeAsk();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !confirmBox.hidden) closeAsk();
+});
+
+async function busy(button, label, task) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = label;
+  try {
+    return await task();
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
 }
 
 function showReply(label, text) {
@@ -172,6 +193,13 @@ function formatBytes(value) {
   return `${size.toFixed(digits)} ${units[index]}`;
 }
 
+function setBar(selector, fraction) {
+  const bar = document.querySelector(selector);
+  if (!bar) return;
+  const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
+  bar.style.width = `${Math.round(clamped * 100)}%`;
+}
+
 function render(data) {
   document.querySelector("#sample").hidden = !data.sample;
   document.querySelector("#server-name").textContent = data.publicName || "家用服务器";
@@ -187,6 +215,9 @@ function render(data) {
   document.querySelector("#mem").textContent = usage.memTotal ? `${formatBytes(usage.memUsed)} / ${formatBytes(usage.memTotal)}` : "—";
   document.querySelector("#disk").textContent = usage.diskTotal ? `${formatBytes(usage.diskUsed)} / ${formatBytes(usage.diskTotal)}` : "—";
   document.querySelector("#game-mem").textContent = usage.gameMem ? formatBytes(usage.gameMem) : "—";
+  setBar("#cpu-bar", usage.cpu == null ? 0 : usage.cpu / 100);
+  setBar("#mem-bar", usage.memTotal ? usage.memUsed / usage.memTotal : 0);
+  setBar("#disk-bar", usage.diskTotal ? usage.diskUsed / usage.diskTotal : 0);
   board.dataset.state = data.failed ? "failed" : (data.running ? "on" : "off");
   document.querySelector("#lamp").classList.toggle("on", Boolean(data.running) && !data.failed);
   renderPlayers(data);
@@ -205,12 +236,19 @@ async function refresh() {
   }
 }
 
+let lastLogKey = null;
+
 async function refreshLogs() {
   try {
     const data = await request("/api/logs");
     const logs = document.querySelector("#logs");
-    logs.textContent = (data.lines || []).join("\n") || data.error || "日志是空的";
-    logs.scrollTop = logs.scrollHeight;
+    const lines = data.lines || [];
+    const key = lines.join("\n");
+    if (key !== lastLogKey) {
+      lastLogKey = key;
+      logs.textContent = key || data.error || "日志是空的";
+      logs.scrollTop = logs.scrollHeight;
+    }
     replaceList("#visits", data.visits || [], data.error || "还没有进出记录", (row) => {
       const item = document.createElement("li");
       const time = document.createElement("span");
@@ -319,16 +357,38 @@ function renderCommands(specs) {
   root.className = "groups";
   for (const [group, items] of groups) {
     const section = document.createElement("section");
-    const title = document.createElement("h2");
-    title.textContent = group;
+    section.dataset.group = group;
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "group-head";
+    head.setAttribute("aria-expanded", "false");
+    const name = document.createElement("span");
+    name.className = "group-name";
+    name.textContent = group;
+    const count = document.createElement("span");
+    count.className = "group-count";
+    count.textContent = String(items.length);
+    const chevron = document.createElement("span");
+    chevron.className = "group-chev";
+    chevron.setAttribute("aria-hidden", "true");
+    head.append(name, count, chevron);
+    head.addEventListener("click", () => {
+      if (expanded.has(group)) expanded.delete(group);
+      else expanded.add(group);
+      applyExpansion();
+    });
     const cards = document.createElement("div");
     cards.className = "cmd-list";
+    cards.hidden = true;
     for (const spec of items) {
       const row = document.createElement("article");
       row.className = "cmd";
       const line = document.createElement("button");
       line.type = "button";
       line.className = "cmd-line";
+      const dot = document.createElement("span");
+      dot.className = "cmd-dot";
+      if (spec.danger) dot.classList.add("is-danger");
       const name = document.createElement("span");
       name.className = "cmd-name";
       name.textContent = spec.label;
@@ -337,7 +397,10 @@ function renderCommands(specs) {
       const help = document.createElement("span");
       help.className = "cmd-help";
       help.textContent = spec.help;
-      line.append(name, official, help);
+      const chevron = document.createElement("span");
+      chevron.className = "cmd-chevron";
+      chevron.setAttribute("aria-hidden", "true");
+      line.append(dot, name, official, help, chevron);
       const card = document.createElement("form");
       card.className = "cmd-body";
       card.hidden = true;
@@ -359,7 +422,9 @@ function renderCommands(specs) {
       line.addEventListener("click", () => {
         const opening = card.hidden;
         for (const other of document.querySelectorAll(".cmd-body")) other.hidden = true;
+        for (const otherRow of document.querySelectorAll(".cmd.is-open")) otherRow.classList.remove("is-open");
         card.hidden = !opening;
+        row.classList.toggle("is-open", opening);
       });
       card.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -380,8 +445,7 @@ function renderCommands(specs) {
       row.append(line, card);
       cards.append(row);
     }
-    section.dataset.group = group;
-    section.append(title, cards);
+    section.append(head, cards);
     root.append(section);
   }
   boardNode.append(root);
@@ -390,6 +454,20 @@ function renderCommands(specs) {
 }
 
 let commandGroup = "";
+let expanded = new Set();
+
+function applyExpansion() {
+  for (const section of document.querySelectorAll("#command-board .groups > section")) {
+    const open = expanded.has(section.dataset.group);
+    const head = section.querySelector(".group-head");
+    const list = section.querySelector(".cmd-list");
+    if (head) {
+      head.classList.toggle("is-open", open);
+      head.setAttribute("aria-expanded", String(open));
+    }
+    if (list) list.hidden = !open;
+  }
+}
 
 function renderCommandChips() {
   const box = document.querySelector("#command-groups");
@@ -414,14 +492,22 @@ function renderCommandChips() {
 
 function applyCommandFilter() {
   const query = document.querySelector("#command-search").value.trim().toLowerCase();
-  for (const card of document.querySelectorAll("#command-board .cmd")) {
-    const groupOk = !commandGroup || card.dataset.group === commandGroup;
-    const textOk = !query || (card.dataset.search || "").includes(query);
-    card.hidden = !(groupOk && textOk);
-  }
+  expanded.clear();
   for (const section of document.querySelectorAll("#command-board .groups > section")) {
-    section.hidden = ![...section.querySelectorAll(".cmd")].some((card) => !card.hidden);
+    const group = section.dataset.group;
+    const groupOk = !commandGroup || group === commandGroup;
+    let visible = 0;
+    for (const card of section.querySelectorAll(".cmd")) {
+      const textOk = !query || (card.dataset.search || "").includes(query);
+      const show = groupOk && textOk;
+      card.hidden = !show;
+      if (show) visible += 1;
+    }
+    section.hidden = visible === 0;
+    const shouldExpand = query ? visible > 0 : Boolean(commandGroup && group === commandGroup);
+    if (shouldExpand) expanded.add(group);
   }
+  applyExpansion();
 }
 
 document.querySelector("#command-search").addEventListener("input", applyCommandFilter);
@@ -476,6 +562,14 @@ const MAP = {
 };
 const MAP_PIXEL = { width: 2318656, height: 1019040 };
 const view = { x: 10646, y: 9654, scale: 0.2 };
+const COLOR = {
+  bg: "#0a0e0b",
+  ink: "#eaf2ea",
+  amber: "#f2a63b",
+  dead: "#e0554b",
+  vehicle: "#6fb3d9",
+  font: '13px -apple-system, "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif',
+};
 const tileCache = new Map();
 let spot = null;
 let mapDrag = null;
@@ -642,7 +736,7 @@ function drawMap() {
   }
   const ctx = county.getContext("2d");
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  ctx.fillStyle = "#111";
+  ctx.fillStyle = COLOR.bg;
   ctx.fillRect(0, 0, rect.width, rect.height);
   ctx.imageSmoothingEnabled = !mapDrag;
   const center = worldToPixel(view.x, view.y);
@@ -661,20 +755,20 @@ function drawMap() {
     requestTiles(item, tileBox(item, left, top, right, bottom), index === layers.length - 1 ? "low" : "high");
   });
   layers.forEach((item) => paintReadyTiles(ctx, rect, center, item, tileBox(item, left, top, right, bottom)));
-  ctx.font = "13px Segoe UI, Microsoft YaHei UI, sans-serif";
+  ctx.font = COLOR.font;
   if (showVehicles()) {
     for (const vehicle of (mapState && mapState.vehicles) || []) {
       if (vehicle.x == null) continue;
       const point = worldToScreen(vehicle.x, vehicle.y, rect);
       if (point.sx < -12 || point.sy < -12 || point.sx > rect.width + 12 || point.sy > rect.height + 12) continue;
       const chosen = vehicle.id === pickedVehicleId;
-      ctx.fillStyle = chosen ? "#f4faf6" : "#7eb6d9";
+      ctx.fillStyle = chosen ? COLOR.ink : COLOR.vehicle;
       ctx.fillRect(point.sx - 4, point.sy - 4, 8, 8);
       if (chosen) {
-        ctx.strokeStyle = "#7eb6d9";
+        ctx.strokeStyle = COLOR.vehicle;
         ctx.lineWidth = 2;
         ctx.strokeRect(point.sx - 7, point.sy - 7, 14, 14);
-        ctx.fillStyle = "#f4faf6";
+        ctx.fillStyle = COLOR.ink;
         ctx.fillText(String(vehicle.id), point.sx + 10, point.sy - 8);
       }
     }
@@ -683,18 +777,18 @@ function drawMap() {
     if (player.x == null) continue;
     const point = worldToScreen(player.x, player.y, rect);
     ctx.beginPath();
-    ctx.fillStyle = player.dead ? "#9d3b32" : "#e2a23a";
+    ctx.fillStyle = player.dead ? COLOR.dead : COLOR.amber;
     ctx.arc(point.sx, point.sy, 7, 0, Math.PI * 2);
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "#f4faf6";
+    ctx.strokeStyle = COLOR.ink;
     ctx.stroke();
-    ctx.fillStyle = "#f4faf6";
+    ctx.fillStyle = COLOR.ink;
     ctx.fillText(player.name, point.sx + 10, point.sy - 8);
   }
   if (spot) {
     const point = worldToScreen(spot.x, spot.y, rect);
-    ctx.strokeStyle = "#f4faf6";
+    ctx.strokeStyle = COLOR.ink;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(point.sx - 10, point.sy);
@@ -863,8 +957,9 @@ document.querySelector("#stop").addEventListener("click", () => power("stop", "�
 document.querySelector("#restart").addEventListener("click", () => power("restart", "重启服务器？会先存档，里面的人会被断开。"));
 
 document.querySelector("#save").addEventListener("click", async () => {
+  const button = document.querySelector("#save");
   try {
-    await request("/api/save", { method: "POST", body: "{}" });
+    await busy(button, "存档中…", () => request("/api/save", { method: "POST", body: "{}" }));
     note("已存档");
   } catch (error) {
     note(error.message, "error");
@@ -874,11 +969,12 @@ document.querySelector("#save").addEventListener("click", async () => {
 document.querySelector("#message-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const input = document.querySelector("#message");
+  const button = document.querySelector("#message-form button[type='submit']");
   try {
-    await request("/api/message", {
+    await busy(button, "发送中…", () => request("/api/message", {
       method: "POST",
       body: JSON.stringify({ text: input.value }),
-    });
+    }));
     input.value = "";
     note("已发送");
   } catch (error) {
@@ -889,12 +985,19 @@ document.querySelector("#message-form").addEventListener("submit", async (event)
 document.querySelector("#confirm-no").addEventListener("click", closeAsk);
 document.querySelector("#confirm-yes").addEventListener("click", async () => {
   const action = pending;
-  closeAsk();
   if (!action) return;
+  const button = document.querySelector("#confirm-yes");
+  button.disabled = true;
+  button.textContent = "执行中…";
   try {
     await action();
+    closeAsk();
   } catch (error) {
+    closeAsk();
     note(error.message, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "确认执行";
   }
 });
 
